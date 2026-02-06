@@ -1,10 +1,10 @@
 === Simple CAPTCHA Alternative with Cloudflare Turnstile ===
 Contributors: ElliotVS, RelyWP
 Tags: cloudflare,turnstile,captcha,protect,spam
-Donate link: https://www.paypal.com/donate/?hosted_button_id=RX28BBH7L5XDS
+Donate link: https://www.elliotsowersby.com/donate/
 Requires at least: 4.7
-Tested up to: 6.8
-Stable Tag: 1.33.1
+Tested up to: 6.9
+Stable Tag: 1.37.0
 License: GPLv3 or later.
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -14,7 +14,7 @@ Add Cloudflare Turnstile to WordPress, WooCommerce, Contact Forms & more. The us
 
 Easily add Cloudflare Turnstile to all your WordPress website forms to protect them from spam!
 
-A user-friendly, privacy-preserving reCAPTCHA alternative.
+A user-friendly, privacy-preserving reCAPTCHA alternative. 100% free!
 
 ## Supported Forms ##
 
@@ -75,6 +75,9 @@ The plugin includes several other features and options:
 * Disable Submit Button: Disable the submit button on forms until the Turnstile challenge is completed.
 * Custom Error Message: Set your own custom error message for failed submissions.
 * Whitelist: Prevent Turnstile from showing for logged in users, or certain IP addresses (wildcards are not supported).
+* Resource Hint (Preconnect): Option to enable resource hint preconnect for improved performance.
+* Failsafe Mode: Option to enable failsafe mode. When Cloudflare is down, this mode will either allow submissions, or fallback to reCAPTCHA.
+* Debug Logging: Enable debug logging of Turnstile form submission events to help with troubleshooting.
 
 ## Getting Started ##
 
@@ -85,7 +88,7 @@ It's super quick and easy to get started with Cloudflare Turnstile!
 3. Finally, click the "TEST API RESPONSE" button to make sure the Turnstile API response is working OK.
 4. A new Cloudflare Turnstile challenge will then be displayed on your selected forms to protect them from spam!
 
-For more detailed instructions, please see our <a href="https://relywp.com/blog/how-to-add-cloudflare-turnstile-to-wordpress/?utm_source=plugin" target="_blank">setup guide</a>.
+For more detailed instructions, please see our <a href="https://elliotsowersby.com/blog/setup-guide-turnstile/?utm_source=simplecloudflareturnstile&utm_medium=readme-guide" target="_blank">setup guide</a>.
 
 ## What is Cloudflare Turnstile? ##
 
@@ -111,9 +114,17 @@ Currently available in <a href="https://translate.wordpress.org/projects/wp-plug
 * Follow the developer <a href="https://twitter.com/ElliotSowersby" target="_blank">@ElliotSowersby</a> on Twitter.
 * <a href="https://github.com/elliotvs/simple-cloudflare-turnstile" target="_blank">View on GitHub</a>
 
+## Support The Plugin ##
+
+Special thanks to all <a href="https://github.com/sponsors/ElliotSowersby/">sponsors</a> that help support the development of this plugin.
+
+If you would like to support the continued development and support of this plugin, you can <a href="https://www.elliotsowersby.com/donate/">make a donation</a></a>.
+
+## Trademark Notice ##
+
 <i>Cloudflare, the Cloudflare logo, and Cloudflare Workers are trademarks and/or registered trademarks of Cloudflare, Inc. in the United States and other jurisdictions.</i>
 
-<i>Simple Turnstile is not affiliated with, endorsed, or sponsored by Cloudflare, Inc.</i>
+<i>This plugin is not affiliated with, endorsed, or sponsored by Cloudflare, Inc.</i>
 
 == Installation ==
 
@@ -125,7 +136,7 @@ Currently available in <a href="https://translate.wordpress.org/projects/wp-plug
 6. Finally, you will be required to complete a quick test of the widget by clicking "TEST API RESPONSE", to confirm it's working correctly.
 7. A new Cloudflare Turnstile challenge will then be displayed on your selected forms to protect them from spam!
 
-For more detailed instructions, please see our <a href="https://relywp.com/blog/how-to-add-cloudflare-turnstile-to-wordpress/?utm_source=plugin" target="_blank">setup guide</a>.
+For more detailed instructions, please see our <a href="https://elliotsowersby.com/blog/setup-guide-turnstile/?utm_source=simplecloudflareturnstile&utm_medium=readme-guide" target="_blank">setup guide</a>.
 
 https://www.youtube.com/watch?v=Yn8X_GsTFnU
 
@@ -143,7 +154,7 @@ https://www.youtube.com/watch?v=Yn8X_GsTFnU
 
 = Do you have a setup guide? =
 
-Yes, you can view a setup guide for the plugin <a href="https://relywp.com/blog/how-to-add-cloudflare-turnstile-to-wordpress/?utm_source=plugin" target="_blank">here</a>.
+Yes, you can view a setup guide for the plugin <a href="https://elliotsowersby.com/blog/setup-guide-turnstile/?utm_source=simplecloudflareturnstile&utm_medium=readme-guide" target="_blank">here</a>.
 
 = Will there be more integrations be added in the future? =
 
@@ -157,7 +168,7 @@ You can post a support thread on the WordPress.org forums to get help from the c
 
 <a href="https://wordpress.org/support/plugin/simple-cloudflare-turnstile/#new-topic-0">Click here to create a support topic.</a>
 
-The support forums are the only place you should submit a support ticket for 100% free support from us and the WordPress community.
+The support forums are the only place you should submit a support ticket for 100% free support from the developer and the WordPress community.
 
 = Is the plugin free? =
 
@@ -187,7 +198,7 @@ For details on errors codes being displayed in your browser console, please refe
 
 = The Turnstile Challenge is not appearing, what should I do? =
 
-Firstly, make sure you have completed the <a href="https://relywp.com/blog/how-to-add-cloudflare-turnstile-to-wordpress/?utm_source=plugin" target="_blank">setup guide</a> correctly, and that you have completed the "TEST API RESPONSE" on the settings page.
+Firstly, make sure you have completed the <a href="https://elliotsowersby.com/blog/setup-guide-turnstile/?utm_source=simplecloudflareturnstile&utm_medium=readme-guide" target="_blank">setup guide</a> correctly, and that you have completed the "TEST API RESPONSE" on the settings page.
 
 If you are still having issues, please post a <a href="https://wordpress.org/support/plugin/simple-cloudflare-turnstile/#new-topic-0">support topic</a> on the WordPress.org forums.
 
@@ -197,8 +208,62 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ===
 
+= Version 1.37.0 - 12th January 2026 =
+- Improvement: Improved the Elementor integration to work better in more cases, and with Elementor popups.
+- Improvement: Added an alignment option for the Elementor integration.
+- Tweak: Removed the "Integration Method" option for Elementor forms. It will now load globally but has an option to choose where scripts are loaded.
+- Tweak: Small tweaks to the settings page.
+- Tweak: Added a copy button for the debug log.
+- Fix: Fixed a new issue some websites were experiencing with WooCommerce block checkout not working with Turnstile.
+- Fix: Fixed an error "attempt to read property success on null" showing in some cases.
+- Fix: Fixed the widget label not showing in some cases, on the comments form.
+- Fix: Fixed WooCommerce checkout in some cases not re-rendering Turnstile after payment errors. It should now rerender correctly in all cases to prevent Turnstile errors.
+- Fix: Fixed an issue with Forminator forms when using file upload fields.
+
+= Version 1.36.1 - 31st December 2025 =
+- Fix: Fixed an issue with the disable submit feature not working in some cases.
+
+= Version 1.36.0 - 30th December 2025 =
+- New: Added new "Failsafe Mode" option in the advanced settings.
+- New: Added the ability to enable and set a custom "widget label text" that is shown above the Turnstile widget.
+- New: Added an option to enable "Resource Hint (Preconnect)" in the advanced settings.
+- Tweak: Improved the code for getting the user IP address for the Turnstile verification request. Helps with certain server setups and proxy services.
+- Tweak: Changed Turnstile default render to "auto" instead of "explicit".
+- Tweak: Removed the user ID check on WordPress login Turnstile check, so it still runs if the username is invalid.
+- Tweak: Added "header" info to the debug log entries.
+- Fix: Fixed an issue with Kadence Forms integration in some cases.
+
+= Version 1.35.0 - 27th October 2025 =
+- New: Improvement to Elementor integration to work better with Elementor element caching.
+- New: Added new "Integration Method" for the Elementor integration. The "Load Scripts Globally" option may work better for certain types of caching.
+- Tweak: Updated the Elementor JS code from using jQuery to vanilla JS.
+- Tweak: Added an option in the "Advanced Settings" to toggle "Performance Plugin Compatibility".
+- Tweak: Ultimate Member forms now have a unique fixed ID instead of a random one each time.
+- Tweak: For WooCommerce checkout, added an alternative check for duplicate execution within a single request.
+- Tweak: Made some changes to the settings page, updated the setup guide link, and updated donation/sponsor details.
+- Fix: Fixed an issue with Turnstile being ignored by certain payment methods like PayPal express, in some cases.
+- Fix: Fixed an issue when the "WordPress Login" option is enabled, but "WooCommerce Login" is disabled, the WooCommerce login still gave a verification failed error.
+
+= Version 1.34.3 - 16th October 2025 =
+- Fix: Fixed an issue with some express payment methods. These will now automatically skip the Turnstile check preventing the error message from showing.
+
+= Version 1.34.2 - 15th October 2025 =
+- Fix: Fixed an issue with WooCommerce checkout in some cases.
+
+= Version 1.34.1 - 10th October 2025 =
+- Fix: Fixed an issue with custom login forms causing an error since version 1.34.0.
+- Fix: Fixed an issue with the "Extra Failure Message" when using quotes in the text.
+
+= Version 1.34.0 - 9th October 2025 =
+- New: Added ability to define the Site Key and Secret Key in the wp-config.php file, using the constants "CF_TURNSTILE_SITE_KEY" and "CF_TURNSTILE_SECRET_KEY". This is useful for developers, or if you want to prevent the keys from being changed in the admin settings page.
+- New: Added an export/import tool to the settings page, to allow you to easily export your settings and import them on another website.
+- Tweak: Updated the WooCommerce checkout "cfturnstile_checkout_checked" session to clear in more cases to prevent potential issues.
+- Fix: Added better support for smart payment buttons on WooCommerce checkout, to prevent Turnstile from blocking the checkout in some cases.
+- Fix: Fixed an issue with the "Pay for Order" page when using block checkout.
+- Fix: Fixed an issue with the wp_login_form() function integration.
+
 = Version 1.33.1 - 5th September 2025 =
-- Other: Renamed the plugin from "Simple Cloudflare Turnstile"to "Simple CAPTCHA Alternative with Cloudflare Turnstile" due to trademark guidelines.
+- Other: Renamed the plugin from "Simple Cloudflare Turnstile" to "Simple CAPTCHA Alternative with Cloudflare Turnstile" due to trademark guidelines.
 
 = Version 1.33.0 - 4th September 2025 =
 - Tweak: Added some better compatibility with certain performance plugins that may be minifying/delaying JavaScript and causing issues with Turnstile loading.
