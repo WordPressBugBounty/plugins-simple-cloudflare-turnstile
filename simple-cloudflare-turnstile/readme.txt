@@ -4,7 +4,7 @@ Tags: cloudflare,turnstile,captcha,protect,spam
 Donate link: https://www.elliotsowersby.com/donate/
 Requires at least: 4.7
 Tested up to: 6.9
-Stable Tag: 1.39.0
+Stable Tag: 1.39.1
 License: GPLv3 or later.
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -208,9 +208,12 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ===
 
+= Version 1.39.1 - 1st May 2026 =
+- Fix: Fixed a potential issue with the Turnstile check on login forms failing in certain cases when it runs multiple checks in the same request.
+
 = Version 1.39.0 - 20th April 2026 =
-- New: Added integration for the "Sunshine Photo Cart" plugin (<a href="https://github.com/ElliotSowersby/simple-cloudflare-turnstile/pull/70">#70</a>).
 - New: Added integration for the "SureForms" plugin.
+- New: Added integration for the "Sunshine Photo Cart" plugin (<a href="https://github.com/ElliotSowersby/simple-cloudflare-turnstile/pull/70">#70</a>).
 - Tweak: Adjusted the "Widget Label Text" alignment in some cases so it always shows above the widget.
 
 = Version 1.38.4 - 17th April 2026 =
