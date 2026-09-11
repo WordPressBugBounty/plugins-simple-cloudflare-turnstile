@@ -4,7 +4,7 @@ Tags: cloudflare,turnstile,captcha,protect,spam
 Donate link: https://www.elliotsowersby.com/donate/
 Requires at least: 4.7
 Tested up to: 7.1
-Stable Tag: 1.43.0
+Stable Tag: 1.43.1
 License: GPLv3 or later.
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -209,6 +209,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= Version 1.43.1 - 11th September 2026 =
+- Fix: Fixed an issue since 1.42.3 where the "Before Payment", "After Payment" and "Before Pay Button" widget positions could place the Turnstile widget outside the WooCommerce block checkout, away from the form, on a checkout page whose saved content is missing the payment or place order blocks. The widget is now always placed inside the checkout, above the payment section.
+- Fix: Fixed an issue since 1.38.0 where the Turnstile widget was added twice to a form inside an Elementor popup, which could leave the form unable to be submitted. Elementor rebuilds a popup from a copy of its markup each time it opens, so the widget is now added when the popup opens rather than before it.
+
 = Version 1.43.0 - 9th September 2026 =
 - New: Added support for Elementor's new Atomic forms, using the same "Enable Elementor Forms" setting as classic Elementor Pro forms.
 - New: Added support for Wordfence 9.0.0's Login Security passkeys, which were rejected with a missing challenge error when the WordPress login check was enabled.
@@ -224,9 +228,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 - Fix: Fixed the Turnstile widget not appearing on the WooCommerce app authorization screen (/wc-auth/). You are now sent to the WordPress login form to complete the challenge, then returned to the authorization screen.
 - Fix: Fixed the "cloudflare turnstile" button in the Contact Form 7 form editor inserting nothing when clicked.
 - Fix: Fixed the Turnstile error message not being shown on the Gravity Forms User Registration login form ([gravityform action="login"]).
-- Security: Fixed a vulnerability where the Turnstile check on the WordPress login and lost password forms could be bypassed by adding a fake WooCommerce nonce field to the request.
-- Security: Fixed a vulnerability where the Turnstile check on the WooCommerce lost password form could be bypassed by leaving the form's nonce field out of the request, allowing password reset emails to be sent for any account.
-- Security: Fixed a vulnerability where the Turnstile check on the WooCommerce checkout could be bypassed by adding a wc-ajax parameter to the request, allowing orders to be placed with no verification.
+- Security: Fixed vulnerabilities where the Turnstile check on the WooCommerce checkout and lost password form, and WordPress login and lost password forms could be potentially be bypassed.
 - Security: Fixed a vulnerability in the Contact Form 7 integration, where an unauthenticated visitor could run any shortcode registered on the site by submitting it as a field value. Reported by Jakub Herman via WPScan.
 - Security: Fixed a vulnerability where the Turnstile check on Gravity Forms could be bypassed by adding a page number to the request. The check is now only skipped on forms that really do have more than one page.
 - Tweak: The Turnstile form-tag for Contact Form 7 is now [cf7_simple_turnstile]. Your existing [cf7-simple-turnstile] tags keep working and do not need to be changed.
