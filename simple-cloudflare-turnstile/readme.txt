@@ -4,7 +4,7 @@ Tags: cloudflare,turnstile,captcha,protect,spam
 Donate link: https://www.elliotsowersby.com/donate/
 Requires at least: 4.7
 Tested up to: 7.1
-Stable Tag: 1.43.2
+Stable Tag: 1.44.0
 License: GPLv3 or later.
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -209,19 +209,36 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= Version 1.44.0 - 29th September 2026 =
+- New: Added support for FluentAuth 3.0's two-factor authentication, including passkeys and authenticator apps. The second step of the login previously failed with "There has an error when log you in" when Turnstile was enabled on the WordPress login form.
+- Tweak: Improved compatibility with "Delay JavaScript" in performance plugins such as LiteSpeed Cache and Perfmatters, which could stop the Turnstile widget from displaying on the WooCommerce block checkout, and could stop the Turnstile widget from displaying on Elementor forms and popups or from resetting after a failed submission.
+- Tweak: Improved support for stores with a classic (shortcode) checkout page while the main checkout page uses the Checkout block, where the Turnstile widget could fail to display.
+- Tweak: Payment methods set to skip Turnstile are now also skipped on the WooCommerce "Pay for order" page, as on the checkout.
+- Tweak: A Turnstile token used on the WooCommerce block checkout can no longer be re-used in another session while that order is still being processed.
+- Tweak: The Turnstile widget is now displayed on every copy of a form that appears more than once on the same page, not just the first.
+- Tweak: Improved compatibility with LiteSpeed Cache ESI, so the Turnstile widget is displayed on the comment form for logged-in users and returning commenters.
+- Tweak: Improved compatibility with Easy Digital Downloads Pro, whose settings could previously not be enabled.
+- Tweak: Improved compatibility with Elementor forms added using a template (such as with the template shortcode, the Template widget or a Theme Builder template) when the Elementor "Autodetect pages with forms" option is selected, as Turnstile was not loaded on the page.
+- Tweak: Tightened the FluentAuth integration, so its two-factor compatibility for FluentAuth 2.x can no longer be used to skip the Turnstile check on other login forms, such as the WooCommerce login form.
+- Tweak: The "Analytics" tab now shows which form a failed submission came from, where most failed submissions were previously listed as "Unknown form". Elementor forms are now also listed by name, and Kadence forms are grouped into one entry instead of a new entry for every submission.
+- Tweak: The "Turnstile Debug Log" now shows which form each entry came from.
+- Fix: Fixed an issue where Android users could not type in the WooCommerce login, register or checkout forms on Divi sites, as the keyboard closed and the Turnstile widget disappeared when a field was tapped.
+- Fix: Fixed an issue where WooCommerce block checkout orders could be rejected with a Turnstile error after a failed attempt, such as when paying with PayPal.
+- Fix: Fixed an issue where WooCommerce block checkout orders were rejected with a Turnstile error for whitelisted visitors, and while the failsafe was active during a Cloudflare outage (including after completing the reCAPTCHA failsafe).
+- Fix: Fixed an issue where logged-in customers could not pay for an order on the WooCommerce "Pay for order" page when "Guest only" was enabled.
+
 = Version 1.43.2 - 17th September 2026 =
-- Fix: Fixed an issue since 1.42.3 where the Turnstile widget could be missing from the WooCommerce checkout while the order was still rejected for a missing challenge, leaving the checkout impossible to complete. A theme, page builder or template that renders the checkout more than once could use the widget up on a copy that is never shown. Each checkout form now gets its own widget, and the block checkout checks its own markup for one before deciding it is not needed.
+- Fix: Fixed an issue where the Turnstile widget could be missing from the WooCommerce checkout with certain themes or custom checkouts.
 
 = Version 1.43.1 - 11th September 2026 =
-- Fix: Fixed an issue since 1.42.3 where the "Before Payment", "After Payment" and "Before Pay Button" widget positions could place the Turnstile widget outside the WooCommerce block checkout, away from the form, on a checkout page whose saved content is missing the payment or place order blocks. The widget is now always placed inside the checkout, above the payment section.
-- Fix: Fixed an issue since 1.38.0 where the Turnstile widget was added twice to a form inside an Elementor popup, which could leave the form unable to be submitted. Elementor rebuilds a popup from a copy of its markup each time it opens, so the widget is now added when the popup opens rather than before it.
+- Fix: Fixed an issue where the "Before Payment", "After Payment" and "Before Pay Button" widget positions could place the Turnstile widget outside the WooCommerce block checkout, away from the form, on a checkout page whose saved content is missing the payment or place order blocks.
+- Fix: Fixed an issue where the Turnstile widget was added twice to a form inside an Elementor popup, which could leave the form unable to be submitted. Elementor rebuilds a popup from a copy of its markup each time it opens, so the widget is now added when the popup opens rather than before it.
 
 = Version 1.43.0 - 9th September 2026 =
 - New: Added support for Elementor's new Atomic forms, using the same "Enable Elementor Forms" setting as classic Elementor Pro forms.
 - New: Added support for Wordfence 9.0.0's Login Security passkeys, which were rejected with a missing challenge error when the WordPress login check was enabled.
 - Tweak: Added the cfturnstile_is_partial_checkout_render filter, so other page builders can flag any extra renders of the checkout template.
-- Fix: Fixed an issue since 1.42.3 where WooCommerce orders paid with a card gateway such as Stripe or WooPayments could be rejected with a Turnstile error.
-- Fix: Fixed an issue since 1.42.3 where every order on a WooCommerce checkout built with the Divi Builder's Checkout modules was rejected with a Turnstile error.
+- Fix: Fixed an issue where WooCommerce orders on the Divi Builder's Checkout, or paid with a card gateway such as Stripe or WooPayments could be rejected with a Turnstile error.
 - Fix: Fixed a WooCommerce checkout token remaining usable for up to two minutes when the request that used it ended unexpectedly, such as after a fatal error.
 
 = Version 1.42.3 - 7th September 2026 =
@@ -237,7 +254,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 - Tweak: The Turnstile form-tag for Contact Form 7 is now [cf7_simple_turnstile]. Your existing [cf7-simple-turnstile] tags keep working and do not need to be changed.
 
 = Version 1.42.1 - 27th July 2026 =
-- Fix: Fixed an issue since 1.42.0 where the submit button could stay disabled after the Turnstile challenge was completed, when the "Disable Submit Button" option is enabled. On the login form this could lock you out of your site.
+- Fix: Fixed an issue where the submit button could stay disabled after the Turnstile challenge was completed, when the "Disable Submit Button" option is enabled. On the login form this could lock you out of your site.
 - Fix: Fixed the submit button staying disabled after the widget was re-rendered, such as after an AJAX comment or on the Blocksy account modal.
 - Fix: Fixed the submit button staying disabled on Jetpack forms when the "Disable Submit Button" option is enabled.
 - Fix: Fixed WooCommerce checkout failing with a "please verify that you are human" error when using the GlobalPayments GPAPI gateway with 3D Secure enabled.

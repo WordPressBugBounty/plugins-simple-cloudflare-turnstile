@@ -6,37 +6,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Get turnstile field: Woo Login
 function cfturnstile_field_woo_login() {
 	if(empty(get_option('cfturnstile_tested')) || get_option('cfturnstile_tested') == 'yes') {
-		$unique_id = wp_rand();
+		$unique_id = cfturnstile_request_unique_id('woo-login');
 		cfturnstile_field_show('.woocommerce-form-login__submit', 'turnstileWooLoginCallback', 'woocommerce-login-' . $unique_id, '-woo-login-' . $unique_id, 'sct-woocommerce-login');
 	}
 }
 
 // Get turnstile field: Woo Register
 function cfturnstile_field_woo_register() {
-	$unique_id = wp_rand();
+	$unique_id = cfturnstile_request_unique_id('woo-register');
 	cfturnstile_field_show('.woocommerce-form-register__submit', 'turnstileWooRegisterCallback', 'woocommerce-register-' . $unique_id, '-woo-register-' . $unique_id, 'sct-woocommerce-register');
 }
 
 // Get turnstile field: Woo Reset
 function cfturnstile_field_woo_reset() {
-	$unique_id = wp_rand();
+	$unique_id = cfturnstile_request_unique_id('woo-reset');
 	cfturnstile_field_show('.woocommerce-ResetPassword .button', 'turnstileWooResetCallback', 'woocommerce-reset-' . $unique_id, '-woo-reset-' . $unique_id, 'sct-woocommerce-reset');
 }
 
 // Get turnstile field: Woo Account Details
 function cfturnstile_field_woo_account() {
-	$unique_id = wp_rand();
+	$unique_id = cfturnstile_request_unique_id('woo-account');
 	cfturnstile_field_show('.woocommerce-EditAccountForm button[name=save_account_details], .woocommerce-EditAccountForm input[name=save_account_details]', 'turnstileWooAccountCallback', 'woocommerce-account-' . $unique_id, '-woo-account-' . $unique_id, 'sct-woocommerce-account');
 }
 
 /**
  * Whether the checkout widget has already been handled on this request.
- * Shared so the fallback renderers can tell if the configured position ran.
- *
- * The flag records that cfturnstile_field_checkout() ran, not that its output was kept. A render
- * into a buffer that was then thrown away spends it all the same, leaving the real checkout with
- * no widget while the order is still rejected for a missing token. So $reset clears it when a
- * fresh checkout form starts, or when the finished markup turns out not to contain the widget.
  *
  * @param bool $mark  Set the flag.
  * @param bool $reset Clear the flag.
@@ -55,10 +49,6 @@ function cfturnstile_checkout_widget_rendered( $mark = false, $reset = false ) {
 
 /**
  * Whether this request is a WooCommerce lost password submission.
- *
- * Mirrors WC_Form_Handler::process_lost_password(): it runs on every front-end URL, accepts
- * _wpnonce as a fallback, and reads from $_REQUEST. Testing for the nonce field's presence
- * alone was bypassable by omitting it, and the nonce must be verified, not just present.
  *
  * @return bool
  */
@@ -91,26 +81,22 @@ function cfturnstile_is_checkout_endpoint_page() {
 }
 
 /**
- * Whether the checkout template is being rendered as a throwaway fragment, not the submitted form.
- *
- * Divi's Checkout modules each render the whole checkout template. All but Payment Info swap in a
- * stripped form-checkout.php (a bare <form> WooCommerce never submits) that still fires the
- * order review hooks. Each module attaches its swap_template filter only for its own render, so
- * that filter's presence identifies a partial render. Payment Info renders the real form.
+ * Whether the checkout template is being rendered as a partial, e.g. by Divi's Checkout modules.
  *
  * @return bool
  */
 function cfturnstile_is_partial_checkout_render() {
 	$partial = false;
 
-	$divi_partial_modules = array(
-		'ET_Builder_Module_Woocommerce_Checkout_Billing',
-		'ET_Builder_Module_Woocommerce_Checkout_Shipping',
-		'ET_Builder_Module_Woocommerce_Checkout_Additional_Info',
-		'ET_Builder_Module_Woocommerce_Checkout_Order_Details',
+	$divi_partial_filters = array(
+		array( 'ET_Builder_Module_Woocommerce_Checkout_Billing', 'swap_template' ),
+		array( 'ET_Builder_Module_Woocommerce_Checkout_Shipping', 'swap_template' ),
+		array( 'ET_Builder_Module_Woocommerce_Checkout_Additional_Info', 'swap_template' ),
+		array( 'ET_Builder_Module_Woocommerce_Checkout_Order_Details', 'swap_template' ),
+		array( 'ET_Builder_Module_Woocommerce_Checkout_Order_Details', 'swap_template_fe' ),
 	);
-	foreach ( $divi_partial_modules as $module ) {
-		if ( false !== has_filter( 'wc_get_template', array( $module, 'swap_template' ) ) ) {
+	foreach ( $divi_partial_filters as $filter ) {
+		if ( false !== has_filter( 'wc_get_template', $filter ) ) {
 			$partial = true;
 			break;
 		}
@@ -132,13 +118,18 @@ function cfturnstile_field_checkout() {
 
 	$guest_only = esc_attr( get_option('cfturnstile_guest_only') );
 	if( !$guest_only || ($guest_only && !is_user_logged_in()) ) {
-		// Buffer so the "after payment" spacer is only output when there is a widget to space.
+		// Only output the spacer if there is a widget
 		ob_start();
 		cfturnstile_field_show('', '', 'woocommerce-checkout', '-woo-checkout');
 		$field = ob_get_clean();
 
 		if ( '' === trim( $field ) ) {
 			return;
+		}
+
+		// Failsafe reCAPTCHA on the block checkout needs its response passed to the Store API
+		if ( false !== strpos( $field, 'g-recaptcha' ) && cfturnstile_is_block_based_checkout() ) {
+			$field .= cfturnstile_woo_block_recaptcha_script();
 		}
 
 		if(get_option('cfturnstile_woo_checkout_pos') == "afterpay") {
@@ -153,7 +144,6 @@ function cfturnstile_render_post_block($block_content) {
 	if ( cfturnstile_is_checkout_endpoint_page() ) {
 		return $block_content;
 	}
-	// Keep the block content; returning only the widget removed the payment block.
 	return $block_content . cfturnstile_get_checkout_field();
 }
 
@@ -182,8 +172,7 @@ function cfturnstile_get_checkout_field() {
  * @return bool True if the request is a wc-ajax call that is not placing an order.
  */
 function cfturnstile_is_non_checkout_ajax() {
-	// Never skip once an order is being placed. process_checkout() is reachable without
-	// wc-ajax=checkout, so a stray wc-ajax value must not exempt a real order from the check.
+	// Never skip once an order is being placed
 	if ( did_action( 'woocommerce_before_checkout_process' ) ) {
 		return false;
 	}
@@ -197,7 +186,6 @@ function cfturnstile_is_non_checkout_ajax() {
 
 /**
  * Whether a gateway halted this checkout to run 3DS before resubmitting the same form.
- * The resubmission carries the same single-use token, so the verified flag must survive.
  *
  * @return bool
  */
@@ -232,10 +220,7 @@ function cfturnstile_woo_checkout_deferred_by_gateway() {
 }
 
 /**
- * Whether a checkout verification flag has already been disposed of on this request.
- *
- * Lets the shutdown fallback tell whether the normal clear hook ran, so it never undoes a
- * deliberate extension.
+ * Whether a checkout verification flag has already been cleared on this request.
  *
  * @param string $key  Verification key, e.g. 'cfturnstile_checkout_checked'.
  * @param bool   $mark Set the flag.
@@ -251,13 +236,6 @@ function cfturnstile_checkout_clear_handled( $key, $mark = false ) {
 
 /**
  * Last-resort clear for the classic checkout pass.
- *
- * The pass is normally cleared on woocommerce_after_checkout_validation. A request that dies
- * before that hook left the flag set for the rest of its TTL, and the flag is what lets a token
- * skip re-verification, so the same token stayed replayable until it expired.
- *
- * Only registered by the request that set the flag, so a 3DS resubmission carrying an
- * already-verified token cannot lose its extended pass here.
  */
 function cfturnstile_woo_checkout_shutdown_clear() {
 	if ( cfturnstile_checkout_clear_handled( 'cfturnstile_checkout_checked' ) ) {
@@ -267,16 +245,61 @@ function cfturnstile_woo_checkout_shutdown_clear() {
 }
 
 /**
- * Last-resort clear for the block checkout pass. Same reasoning as the classic one above.
+ * Last-resort clear for the block checkout pass.
  */
 function cfturnstile_woo_block_checkout_shutdown_clear() {
 	if ( cfturnstile_checkout_clear_handled( 'cfturnstile_block_checkout_checked' ) ) {
 		return;
 	}
-	global $cfturnstile_block_checkout_token;
+	global $cfturnstile_block_checkout_token, $cfturnstile_block_checkout_key;
 	if ( ! empty( $cfturnstile_block_checkout_token ) ) {
-		cfturnstile_clear_verified( 'cfturnstile_block_checkout_checked', $cfturnstile_block_checkout_token );
+		cfturnstile_clear_verified( $cfturnstile_block_checkout_key, $cfturnstile_block_checkout_token );
 	}
+}
+
+/**
+ * Verification key for the block checkout pass, tied to the shopper's session so a token that
+ * passed in one session can't skip the check in another while that request is still running.
+ *
+ * @return string
+ */
+function cfturnstile_woo_block_checkout_verified_key() {
+	$session = ( function_exists( 'WC' ) && WC()->session ) ? (string) WC()->session->get_customer_id() : '';
+	return 'cfturnstile_block_checkout_checked_' . $session;
+}
+
+/**
+ * Whether a block checkout order with no token can go ahead. Whitelisted visitors get no widget,
+ * and neither does anyone while the failsafe is active, so they have no token to send.
+ *
+ * @param array|null $extensions Store API extension data.
+ * @return bool
+ */
+function cfturnstile_woo_block_checkout_without_token( $extensions ) {
+	if ( cfturnstile_whitelisted() || apply_filters( 'cfturnstile_widget_disable', false ) ) {
+		return true;
+	}
+
+	// Failsafe, only while Cloudflare is down, as on the classic checkout
+	if ( ! get_option( 'cfturnstile_failover' ) || ! cfturnstile_is_cloudflare_down() ) {
+		return false;
+	}
+	if ( 'recaptcha' === get_option( 'cfturnstile_failsafe_type', 'allow' ) ) {
+		$response = ( is_array( $extensions ) && isset( $extensions['simple-cloudflare-turnstile']['recaptcha'] ) ) ? $extensions['simple-cloudflare-turnstile']['recaptcha'] : '';
+		$check    = cfturnstile_verify_recaptcha( (string) $response, 'woocommerce-checkout' );
+		return ! empty( $check['success'] );
+	}
+	return true;
+}
+
+/**
+ * Failsafe reCAPTCHA on the block checkout: the Store API only sends extension data, so copy the
+ * reCAPTCHA response into it when Place Order is clicked.
+ *
+ * @return string
+ */
+function cfturnstile_woo_block_recaptcha_script() {
+	return '<script data-cfasync="false">(function(w,d){if(w.cfturnstileWooRecaptcha)return;w.cfturnstileWooRecaptcha=1;d.addEventListener("click",function(e){if(!e.target||!e.target.closest||!e.target.closest(".wc-block-components-checkout-place-order-button"))return;var r=d.querySelector(".wp-block-woocommerce-checkout textarea[name=g-recaptcha-response], .wc-block-checkout textarea[name=g-recaptcha-response]"),s=w.wp&&w.wp.data&&w.wp.data.dispatch("wc/store/checkout");if(!r||!s)return;if(typeof s.setExtensionData==="function"){s.setExtensionData("simple-cloudflare-turnstile",{token:"",recaptcha:r.value});}else if(typeof s.__internalSetExtensionData==="function"){s.__internalSetExtensionData("simple-cloudflare-turnstile",{token:"",recaptcha:r.value});}},true);})(window,document);</script>';
 }
 
 // Woo Checkout Check
@@ -303,10 +326,7 @@ if(get_option('cfturnstile_woo_checkout')) {
 		add_filter('render_block_woocommerce/checkout-actions-block', 'cfturnstile_render_pre_block', 999, 1); // Before Actions block, not sure if this option is still supported.
 	}
 
-	// Fallback: if the configured position's hook or block never rendered (older block markup,
-	// removed block, custom theme template), place the widget anyway. Otherwise the order is
-	// rejected for a missing token with no widget on screen. Both fallbacks run after every
-	// position hook and no-op once the widget has been handled.
+	// Fallback if the configured position did not render
 	add_filter( 'render_block_woocommerce/checkout', 'cfturnstile_render_block_checkout_fallback', 9999, 1 );
 	function cfturnstile_render_block_checkout_fallback( $block_content ) {
 		if ( ! is_string( $block_content ) || '' === $block_content ) {
@@ -316,9 +336,7 @@ if(get_option('cfturnstile_woo_checkout')) {
 			return $block_content;
 		}
 
-		// Go by the markup, not the flag: every block position renders inside this block, so if the
-		// widget (or a failsafe marker standing in for it) is not here, it is not on the page, and
-		// the flag was spent on a render that was thrown away.
+		// Check the markup, not the flag, as a discarded render can still set it
 		if ( false !== strpos( $block_content, 'id="cf-turnstile-woo-checkout"' ) || false !== strpos( $block_content, 'name="cfturnstile_failsafe"' ) ) {
 			return $block_content;
 		}
@@ -329,29 +347,24 @@ if(get_option('cfturnstile_woo_checkout')) {
 			return $block_content;
 		}
 
-		// Above the Place Order button, as a sibling of the actions block.
+		// Above the Place Order button
 		if ( preg_match( '/<div[^>]*wp-block-woocommerce-checkout-actions-block[^>]*>/i', $block_content, $match, PREG_OFFSET_CAPTURE ) ) {
 			$at = $match[0][1];
 			return substr( $block_content, 0, $at ) . $widget . substr( $block_content, $at );
 		}
 
-		// The configured block is missing from the saved checkout markup. WooCommerce still shows it:
-		// every inner block with lock.default.remove renders client-side when absent, appended after
-		// the fields block's saved children. So the last slot inside the fields block is directly
-		// above those, which is where every remaining position wants the widget anyway.
+		// Otherwise at the end of the fields block
 		$fields = cfturnstile_block_checkout_fields_end( $block_content );
 		if ( false !== $fields ) {
 			return substr( $block_content, 0, $fields ) . $widget . substr( $block_content, $fields );
 		}
 
-		// No fields block either: append after the checkout. The block checkout reads the token by id.
+		// No fields block either, so append after the checkout
 		return $block_content . $widget;
 	}
 
 	/**
-	 * Offset of the closing tag of the checkout fields block, so the widget can be placed as its
-	 * last child. Appending after the whole checkout block instead drops the widget outside the
-	 * block's React root, where the theme lays it out on its own away from the form.
+	 * Offset of the closing tag of the checkout fields block.
 	 *
 	 * @param string $block_content Rendered woocommerce/checkout block.
 	 * @return int|false Offset of the fields block's closing </div>, or false if not found.
@@ -361,7 +374,7 @@ if(get_option('cfturnstile_woo_checkout')) {
 			return false;
 		}
 
-		// Walk from the opening tag to its matching close, so nested blocks are skipped.
+		// Find the matching closing tag, skipping nested blocks
 		$offset = $match[0][1] + strlen( $match[0][0] );
 		$depth  = 1;
 		while ( $depth > 0 && preg_match( '/<(\/?)div\b[^>]*>/i', $block_content, $tag, PREG_OFFSET_CAPTURE, $offset ) ) {
@@ -375,14 +388,9 @@ if(get_option('cfturnstile_woo_checkout')) {
 		return false;
 	}
 
-	// Classic checkout fallbacks. Priority 9999 runs after woocommerce_checkout_payment (20), so
-	// the configured position wins when it fired. Skipped during partial renders of the template
-	// (see cfturnstile_is_partial_checkout_render()): rendering there put the widget in a form that
-	// is never submitted and spent the flag, so the real form got nothing and every order failed.
+	// Classic checkout fallbacks, run after the configured position
 	if ( ! $cfturnstile_cfw_checkout ) {
-		// Each real checkout form starts with a clean slate, so a render earlier in the request
-		// whose output was discarded cannot leave this one without a widget. Partial renders are
-		// excluded so Divi's stripped forms still get nothing.
+		// Reset the flag when a real checkout form starts
 		add_action( 'woocommerce_before_checkout_form', 'cfturnstile_checkout_form_start', -9999 );
 		function cfturnstile_checkout_form_start() {
 			if ( cfturnstile_is_checkout_endpoint_page() || cfturnstile_is_partial_checkout_render() ) {
@@ -415,7 +423,7 @@ if(get_option('cfturnstile_woo_checkout')) {
 			return;
 		}
 
-		// Skip gateway pre-validation wc-ajax calls that are not placing an order, to preserve the token.
+		// Skip wc-ajax calls that are not placing an order
 		if ( cfturnstile_is_non_checkout_ajax() ) {
 			return;
 		}
@@ -436,14 +444,14 @@ if(get_option('cfturnstile_woo_checkout')) {
 
 		// Check if guest only enabled
 		$guest = esc_attr( get_option('cfturnstile_guest_only') );
-		// Check — always require a fresh Turnstile token (tokens are single-use).
+		// Check
 		if( !$skip && (!$guest || ( $guest && !is_user_logged_in() )) ) {
 			// If this token already passed verification, skip re-check.
 			if ( cfturnstile_get_verified( 'cfturnstile_checkout_checked' ) ) {
 				$cfturnstile_wc_checkout_ran = true;
 				return;
 			}
-			$check = cfturnstile_check();
+			$check = cfturnstile_check('', 'woocommerce-checkout');
 			$success = $check['success'];
 			if($success != true) {
 				wc_add_notice( cfturnstile_failed_message(), 'error');
@@ -462,8 +470,7 @@ if(get_option('cfturnstile_woo_checkout')) {
 			return;
 		}
 
-		// No wc-ajax skip on this REST route: honouring it would be a bypass. The POST guard limits
-		// the check to the request that places the order, not the PATCH that updates a draft.
+		// No wc-ajax skip on this REST route, and only check the POST that places the order
 
 		// Skip if Turnstile disabled for payment method
 		$skip = 0;
@@ -507,32 +514,38 @@ if(get_option('cfturnstile_woo_checkout')) {
 
 			// Check if guest only enabled
 			$guest = esc_attr( get_option('cfturnstile_guest_only') );
-			// Check — always require a fresh Turnstile token (tokens are single-use).
+			// Check
 			if( !$skip && (!$guest || ( $guest && !is_user_logged_in() )) ) {
 				$extensions = $request->get_param( 'extensions' );
 				$token = ( is_array( $extensions ) && isset( $extensions['simple-cloudflare-turnstile']['token'] ) ) ? $extensions['simple-cloudflare-turnstile']['token'] : '';
 
 				if ( empty( $token ) ) {
+					// Whitelisted visitors and the failsafe get no widget, so no token either
+					if ( cfturnstile_woo_block_checkout_without_token( $extensions ) ) {
+						$cfturnstile_wc_block_checkout_ran = true;
+						return;
+					}
 					throw new \Exception( cfturnstile_failed_message() );
 				}
 
-				// Store token so the cleanup callback can access it.
-				global $cfturnstile_block_checkout_token;
+				// Store token and key so the cleanup callbacks can access them.
+				global $cfturnstile_block_checkout_token, $cfturnstile_block_checkout_key;
 				$cfturnstile_block_checkout_token = $token;
+				$cfturnstile_block_checkout_key   = cfturnstile_woo_block_checkout_verified_key();
 
-				// If this token already passed verification, skip re-check.
-				if ( cfturnstile_get_verified( 'cfturnstile_block_checkout_checked', $token ) ) {
+				// If this token already passed verification in this session, skip re-check.
+				if ( cfturnstile_get_verified( $cfturnstile_block_checkout_key, $token ) ) {
 					$cfturnstile_wc_block_checkout_ran = true;
 					return;
 				}
-				
-				$check = cfturnstile_check( $token );
+
+				$check = cfturnstile_check( $token, 'woocommerce-checkout' );
 				$success = $check['success'];
 				$cfturnstile_wc_block_checkout_ran = true;
 				if($success != true) {
 					throw new \Exception( cfturnstile_failed_message() );
 				} else {
-					cfturnstile_set_verified( 'cfturnstile_block_checkout_checked', $token, 120 );
+					cfturnstile_set_verified( $cfturnstile_block_checkout_key, $token, 120 );
 					add_action( 'shutdown', 'cfturnstile_woo_block_checkout_shutdown_clear' );
 				}
 			}
@@ -546,12 +559,11 @@ if(get_option('cfturnstile_woo_checkout')) {
 
 		$deadline_key = cfturnstile_transient_key( 'cfturnstile_checkout_deferred_until' );
 
-		// Keep an existing pass alive while a gateway runs 3DS and resubmits the same form. Only
-		// extend a pass, never grant one: the marker is added even when the challenge failed.
+		// Keep an existing pass alive while a gateway runs 3DS
 		if ( cfturnstile_get_verified( 'cfturnstile_checkout_checked' ) && cfturnstile_woo_checkout_deferred_by_gateway() ) {
 			$expire = (int) apply_filters( 'cfturnstile_woo_deferred_checkout_expiry', 900 );
 			if ( $expire > 0 && $deadline_key ) {
-				// Fixed on the first deferral so repeated markers cannot extend it forever.
+				// Deadline is only set once, so it can't be extended forever
 				$deadline = (int) get_transient( $deadline_key );
 				if ( ! $deadline ) {
 					$deadline = time() + $expire;
@@ -576,9 +588,9 @@ if(get_option('cfturnstile_woo_checkout')) {
 	function cfturnstile_woo_block_checkout_clear_transient() {
 		cfturnstile_checkout_clear_handled( 'cfturnstile_block_checkout_checked', true );
 
-		global $cfturnstile_block_checkout_token;
+		global $cfturnstile_block_checkout_token, $cfturnstile_block_checkout_key;
 		if ( ! empty( $cfturnstile_block_checkout_token ) ) {
-			cfturnstile_clear_verified( 'cfturnstile_block_checkout_checked', $cfturnstile_block_checkout_token );
+			cfturnstile_clear_verified( $cfturnstile_block_checkout_key, $cfturnstile_block_checkout_token );
 		}
 	}
 
@@ -600,6 +612,12 @@ if(get_option('cfturnstile_woo_checkout')) {
 							'context'           => array( 'view', 'edit' ),
 							'sanitize_callback' => 'sanitize_text_field',
 						),
+						'recaptcha' => array(
+							'description'       => __( 'reCAPTCHA response, sent while the failsafe is active.', 'simple-cloudflare-turnstile' ),
+							'type'              => array( 'string', 'null' ), // Optional, Woo passes null when it is not sent
+							'context'           => array( 'view', 'edit' ),
+							'sanitize_callback' => 'sanitize_text_field',
+						),
 					);
 				},
 			)
@@ -613,7 +631,16 @@ if(get_option('cfturnstile_woo_checkout_pay')) {
 	add_action('woocommerce_pay_order_before_submit', 'cfturnstile_field_checkout', 10);
 	add_action('woocommerce_before_pay_action', 'cfturnstile_woo_checkout_pay_check', 10, 2);
 	function cfturnstile_woo_checkout_pay_check($order) {
-		$check = cfturnstile_check();
+		// Same exemptions as the checkout: guest only (no widget is shown), and skipped payment methods
+		if ( get_option('cfturnstile_guest_only') && is_user_logged_in() ) {
+			return;
+		}
+		$selected_payment_methods = get_option('cfturnstile_selected_payment_methods', array());
+		if ( isset( $_POST['payment_method'] ) && is_array( $selected_payment_methods ) && in_array( sanitize_text_field( wp_unslash( $_POST['payment_method'] ) ), $selected_payment_methods, true ) ) {
+			return;
+		}
+
+		$check = cfturnstile_check('', 'woocommerce-checkout');
 		$success = $check['success'];
 		if($success != true) {
 			wc_add_notice( cfturnstile_failed_message(), 'error');
@@ -627,9 +654,6 @@ if(get_option('cfturnstile_woo_login')) {
 
 	/**
 	 * Send the app authorization login (/wc-auth/v1/login/) to wp-login.php.
-	 *
-	 * Its template has no wp_head/wp_footer or widget hooks, so the challenge can never be solved
-	 * there. Exempting the path would be a bypass, since process_login() runs on every URL.
 	 */
 	add_action( 'woocommerce_auth_page_header', 'cfturnstile_woo_auth_login_redirect', 1 );
 	function cfturnstile_woo_auth_login_redirect() {
@@ -639,7 +663,7 @@ if(get_option('cfturnstile_woo_login')) {
 		if ( empty( $_SERVER['REQUEST_URI'] ) ) {
 			return;
 		}
-		// Relative path only; never trust the Host header.
+		// Relative path only, never trust the Host header
 		$redirect = esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) );
 		wp_safe_redirect( wp_login_url( $redirect ) );
 		exit;
@@ -655,13 +679,13 @@ if(get_option('cfturnstile_woo_login')) {
 			if(defined( 'REST_REQUEST' ) && REST_REQUEST) { return $user; } // Skip REST API
 			if(is_wp_error($user) && isset($user->errors['empty_username']) && isset($user->errors['empty_password']) ) {return $user; } // Skip Errors
 
-			// Check if already validated (cache-friendly, no PHP session)
+			// Check if already validated
 			if( cfturnstile_get_verified( 'cfturnstile_login_checked_' . $user->ID ) ) {
 				return $user;
 			}
 
 			// Check Turnstile
-			$check = cfturnstile_check();
+			$check = cfturnstile_check('', 'woocommerce-login');
 			$success = $check['success'];
 			if($success != true) {
 				$user = new WP_Error( 'cfturnstile_error', cfturnstile_failed_message() );
@@ -701,7 +725,7 @@ if(get_option('cfturnstile_woo_register')) {
 		if(defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST) { return; } // Skip XMLRPC
 		if(defined( 'REST_REQUEST' ) && REST_REQUEST) { return; } // Skip REST API
 		if(function_exists('is_checkout') && is_checkout()) { return; } // Skip if on checkout page, to avoid conflicts with the checkout integration
-		$check = cfturnstile_check();
+		$check = cfturnstile_check('', 'woocommerce-register');
 		$success = isset( $check['success'] ) ? $check['success'] : false;
 		if($success != true) {
 			$validation_errors->add( 'cfturnstile_error', cfturnstile_failed_message() );
@@ -718,7 +742,7 @@ if(get_option('cfturnstile_woo_reset')) {
 			return;
 		}
 
-		$check = cfturnstile_check();
+		$check = cfturnstile_check('', 'woocommerce-reset');
 		$success = isset( $check['success'] ) ? $check['success'] : false;
 		if($success != true) {
 			$validation_errors->add( 'cfturnstile_error', cfturnstile_failed_message() );
@@ -739,7 +763,7 @@ if(get_option('cfturnstile_woo_account')) {
 			return;
 		}
 
-		$check = cfturnstile_check();
+		$check = cfturnstile_check('', 'woocommerce-account');
 		$success = isset( $check['success'] ) ? $check['success'] : false;
 		if($success != true) {
 			$validation_errors->add( 'cfturnstile_error', cfturnstile_failed_message() );
@@ -749,9 +773,24 @@ if(get_option('cfturnstile_woo_account')) {
 
 // Check if WooCommerce block checkout page
 function cfturnstile_is_block_based_checkout() {
-    if ( function_exists('is_checkout') && is_checkout() && !isset($_GET['pay_for_order']) ) {
+    if ( function_exists('is_checkout') && !isset($_GET['pay_for_order']) ) {
+        // AJAX fragment refreshes only come from the classic checkout
+        if ( wp_doing_ajax() ) {
+            return false;
+        }
+        // Go by the page being viewed, as a classic checkout page can exist alongside a block one,
+        // and is_checkout() misses a Checkout block that is not on the main checkout page
+        $post = get_post();
+        if ( $post instanceof WP_Post ) {
+            if ( has_block( 'woocommerce/checkout', $post ) ) {
+                return true;
+            }
+            if ( has_shortcode( $post->post_content, 'woocommerce_checkout' ) || has_block( 'woocommerce/classic-shortcode', $post ) ) {
+                return false;
+            }
+        }
         $checkout_page_id = wc_get_page_id( 'checkout' );
-        if ( $checkout_page_id && has_block( 'woocommerce/checkout', get_post( $checkout_page_id )->post_content ) ) {
+        if ( is_checkout() && $checkout_page_id && has_block( 'woocommerce/checkout', get_post( $checkout_page_id )->post_content ) ) {
             return true;
         }
     }

@@ -6,13 +6,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * FluentAuth (Fluent Security) compatibility.
  *
- * FluentAuth re-runs the WordPress authenticate chain via wp_signon() for logins it has
- * already verified through its own second step - email two-factor and magic login. Those
- * requests never carry a Turnstile token (the human check happened on the first-factor
- * login), so the global WordPress login check would reject them with "missing-input-response".
- * Skip the Turnstile login check for those specific, already-verified FluentAuth flows only.
- *
- * @see FluentAuth\App\Hooks\Handlers\TwoFaHandler::verify2FaEmailCode()
+ * @see FluentAuth\App\Hooks\Handlers\TwoFaHandler::verifyChallenge()
+ * @see FluentAuth\App\Hooks\Handlers\TwoFaHandler::verify2FaEmailCode() (FluentAuth 2.x)
  * @see FluentAuth\App\Hooks\Handlers\MagicLoginHandler
  */
 add_filter( 'cfturnstile_wp_login_checks', 'cfturnstile_fluentauth_skip_wp_login_check', 10, 1 );
@@ -22,13 +17,28 @@ function cfturnstile_fluentauth_skip_wp_login_check( $skip ) {
 		return $skip;
 	}
 
-	// Email two-factor: FluentAuth verifies the emailed code, then re-authenticates via
-	// wp_signon() over admin-ajax. Only trust this action during an AJAX request, so it
-	// cannot be appended to a wp-login.php credential POST to bypass the Turnstile check.
+	// FluentAuth 3.x: every second factor (email code, authenticator app, passkey) is answered
+	// over admin-ajax, then the login is completed with wp_signon(). FluentAuth raises this flag
+	// only around that wp_signon(), after the proof has been verified, and the first factor
+	// already passed Turnstile. It is set in-process, so a request cannot fake it.
 	if (
-		wp_doing_ajax()
-		&& isset( $_REQUEST['action'] )
+		method_exists( '\FluentAuth\App\Helpers\Helper', 'isTokenVerifiedLogin' )
+		&& \FluentAuth\App\Helpers\Helper::isTokenVerifiedLogin()
+	) {
+		return true;
+	}
+
+	// Email two-factor (FluentAuth 2.x only, 3.x is handled above): FluentAuth verifies the emailed
+	// code, then re-authenticates via wp_signon() over admin-ajax. Only trust FluentAuth's own code
+	// request, which sends a login hash and no password. A login form (e.g. WooCommerce's, which is
+	// also processed on admin-ajax and wc-ajax requests) always sends a password.
+	if (
+		! method_exists( '\FluentAuth\App\Helpers\Helper', 'isTokenVerifiedLogin' )
+		&& wp_doing_ajax()
+		&& isset( $_REQUEST['action'], $_REQUEST['login_hash'] )
 		&& 'fluent_auth_2fa_email' === sanitize_text_field( wp_unslash( $_REQUEST['action'] ) )
+		&& empty( $_POST['password'] )
+		&& empty( $_POST['pwd'] )
 	) {
 		return true;
 	}

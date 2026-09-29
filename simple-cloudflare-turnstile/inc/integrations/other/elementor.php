@@ -79,7 +79,7 @@ if(get_option('cfturnstile_elementor')) {
         'cfturnstile-elementor-forms',
         plugins_url('simple-cloudflare-turnstile/js/integrations/elementor-forms.js'),
         $deps,
-        '3.0',
+        '3.1',
         true
       );
 
@@ -202,14 +202,31 @@ if(get_option('cfturnstile_elementor')) {
     }
     return false;
   }
-  
+
+  /**
+   * Autodetect: also load scripts when a form is rendered from a template (shortcode, Template widget, Theme Builder).
+   */
+  add_filter('elementor/frontend/builder_content_data', 'cfturnstile_elementor_detect_rendered_form', 10, 2);
+  function cfturnstile_elementor_detect_rendered_form($data, $post_id = 0){
+    if ( is_admin() || did_action('wp_print_footer_scripts') || wp_script_is('cfturnstile-elementor-forms', 'enqueued') ) {
+      return $data;
+    }
+    if ( get_option('cfturnstile_elementor_global_scope', '') !== 'autodetect' ) {
+      return $data;
+    }
+    if ( is_array($data) && cfturnstile_elementor_elements_contain_form($data) ) {
+      cfturnstile_elementor_enqueue_scripts(true);
+    }
+    return $data;
+  }
+
   // Elementor Forms Check
   add_action('elementor_pro/forms/validation', 'cfturnstile_elementor_check', 10, 2);
   function cfturnstile_elementor_check($record, $ajax_handler){
     if(!cfturnstile_whitelisted()) {
       $error_message = cfturnstile_failed_message();
     if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
-    $check = cfturnstile_check();
+    $check = cfturnstile_check('', 'elementor-form');
     $success = $check['success'];
     if($success != true) {
       $ajax_handler->add_error_message( $error_message );
