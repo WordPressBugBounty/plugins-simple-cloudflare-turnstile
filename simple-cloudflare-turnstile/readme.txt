@@ -4,7 +4,7 @@ Tags: cloudflare,turnstile,captcha,protect,spam
 Donate link: https://www.elliotsowersby.com/donate/
 Requires at least: 4.7
 Tested up to: 7.1
-Stable Tag: 1.44.1
+Stable Tag: 1.44.3
 License: GPLv3 or later.
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -209,8 +209,14 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= Version 1.44.3 - 29th October 2026 =
+- Fix: Fixed WooCommerce and Easy Digital Downloads registration forms failing with "Please verify that you are human" on some sites, and new Easy Digital Downloads accounts not being logged in after registering when WordPress login protection is enabled.
+
+= Version 1.44.2 - 29th October 2026 =
+- Security: Fixed an issue where the Turnstile check on the WordPress login and registration forms could be skipped on sites using Easy Digital Downloads or WooCommerce, and where the "Clean Login" registration form was not verified. (Reported by Tai Nguyen via Patchstack)
+
 = Version 1.44.1 - 28th October 2026 =
-- Security: Turnstile tokens longer than Cloudflare's 2,048-character maximum, or not sent as text, are now rejected before they are sent to Cloudflare for verification. With Failsafe Mode set to "Allow submissions", an oversized token could make the verification request fail, which was treated as a Cloudflare outage and let the form be submitted without solving Turnstile. These rejections are also now recorded in the debug log and analytics.
+- Security: Turnstile tokens longer than Cloudflare's 2,048-character maximum, or not sent as text, are now rejected before they are sent to Cloudflare for verification.
 - Security: Fixed an issue where Contact Form 7 forms protected with the Turnstile form-tag could be submitted without solving Turnstile. (Reported by "mroccon" via Patchstack)
 
 = Version 1.44.0 - 29th September 2026 =
